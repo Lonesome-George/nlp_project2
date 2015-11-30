@@ -23,14 +23,3 @@ def divide_line(line, sep1, sep2):
         middle = sp_list[0]
         right = sp_list[1]
     return [left, middle, right]
-
-# # 分词
-# def tokenize(text):
-#     text = text.rstrip('\n') # 去除行尾的换行符
-#     seg_list = list(jieba.cut(text, cut_all=False))# 精确模式
-#     seg_newlist = []
-#     for seg in seg_list:
-#         seg = seg.strip()# 去除单词前后的空格
-#         if seg != '':    # 如果整个单词由空格构成则删除
-#             seg_newlist.append(seg)
-#     return seg_newlist

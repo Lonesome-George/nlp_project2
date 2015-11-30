@@ -190,7 +190,7 @@ def read_extracted_featureset():
         fi.close()
 
 # 将新闻标题表示成特征
-def feature(title , person1, person2):
+def feature(title, person1, person2):
     if len(extracted_featureset_dict) == 0:
         # 读取文件
         read_extracted_featureset()
@@ -200,39 +200,45 @@ def feature(title , person1, person2):
     idx = 0
     features = []
     for sp in sp_list:
-        if sp == '': continue
+        if sp == '':
+            sp = ' ' # 以防下面调用Seg()报错
         for t in Seg(sp):
             word_list.append(t[0])
             pos_list.append(t[1])
         idx += 1
         if idx == 1:
             feats = sub_feature(word_list, extracted_featureset_dict['left_words'])
-            features.append(feats)
+            add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_left_pos'])
-            features.append(feats)
+            add_features(feats, features)
         elif idx == 2:
             feats = sub_feature(word_list, extracted_featureset_dict['middle_words'])
-            features.append(feats)
+            add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_right_pos'])
-            features.append(feats)
+            add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p2_left_pos'])
-            features.append(feats)
+            add_features(feats, features)
         elif idx == 3:
             feats = sub_feature(word_list, extracted_featureset_dict['right_words'])
-            features.append(feats)
+            add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p2_right_pos'])
-            features.append(feats)
+            add_features(feats, features)
     return features
 
 # 生成子特征
 def sub_feature(featureset, total_featureset):
     features = []
-    for feat in featureset:
-        if feat in total_featureset:
+    for feat in total_featureset:
+        if feat in featureset:
             features.append(1)
         else:
             features.append(0)
     return features
+
+# 将子特征加入特征向量
+def add_features(feats, features):
+    for feat in feats:
+        features.append(feat)
 
 if __name__ == '__main__':
     init_feature_set()

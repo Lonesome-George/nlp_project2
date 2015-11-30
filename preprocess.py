@@ -2,38 +2,31 @@
 
 import os
 from base import *
-from utils import proc_line, divide_line
+from utils import divide_line
+from corpus import gen_training_corpus
 from nlpir import Seg
 
 data_dir = "./TrainingSet"
-trainset = "./TrainingSet/project2_TrainingSet7000"
 trainset_prefix = "project2_TrainingSet7000_"
 
 # 将每一种关系实例归类
 if __name__ == '__main__':
-    fi_train = open(trainset, 'r')
+    fi_train = open(raw_trainingset, 'r')
     # 为每一种关系建立一个预处理文件
     file_out_list = []
-    fo_relation_dict = {}
-    for relation in relations:
-        filename = trainset_prefix + relation
+    fo_relation_list = []
+    for i in range(len(relations)):
+        filename = trainset_prefix + str(i)
         filename = os.path.join(data_dir, filename)
         file_out_list.append(filename)
-        fo_relation_dict[relation] = open(filename.decode('utf-8'), 'w')
+        fo_relation_list.append(open(filename.decode('utf-8'), 'w'))
     # 读取训练集
     for line in fi_train:
-        seg_list = proc_line(line, '\t')
-        relation = seg_list[0]
-        person1 = seg_list[1]
-        person2 = seg_list[2]
-        title = seg_list[3]
-        label = seg_list[4] # 是否的确是对应的关系
-        sp_list = divide_line(title, person1, person2)# 将新闻标题以人名为分隔符划分成3部分
-        # segments_list = []  # 每部分的分词结果
+        corpus = gen_training_corpus(line)
+        sp_list = divide_line(corpus.title, corpus.person1, corpus.person2)# 将新闻标题以人名为分隔符划分成3部分
         string = ""
         idx = 0
         for sp in sp_list:
-            # segments_list.append(Seg(sp))
             if sp != '':
                 for t in Seg(sp): # 调用中科院的分词
                     s = '%s:%s;' % (t[0],t[1])
@@ -42,10 +35,7 @@ if __name__ == '__main__':
             if idx < len(sp_list):
                 string += '||'
         string += '\n'
-        filename = relation
-        if label == '0': # 关系负例
-            filename = label
-        fo_relation_dict[filename].write(string)
+        fo_relation_list[corpus.label].write(string)
     fi_train.close()
-    for filename, fo in fo_relation_dict.items():
+    for fo in fo_relation_list:
         fo.close()
