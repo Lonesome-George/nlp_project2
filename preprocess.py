@@ -6,7 +6,7 @@ from utils import divide_line
 from corpus import gen_training_corpus
 from nlpir import Seg
 
-data_dir = "./TrainingSet"
+trainset_dir = "./TrainingSet"
 trainset_prefix = "project2_TrainingSet7000_"
 
 # 将每一种关系实例归类
@@ -15,9 +15,9 @@ if __name__ == '__main__':
     # 为每一种关系建立一个预处理文件
     file_out_list = []
     fo_relation_list = []
-    for i in range(len(relations)):
+    for i in range(len(relation_list)):
         filename = trainset_prefix + str(i)
-        filename = os.path.join(data_dir, filename)
+        filename = os.path.join(trainset_dir, filename)
         file_out_list.append(filename)
         fo_relation_list.append(open(filename.decode('utf-8'), 'w'))
     # 读取训练集

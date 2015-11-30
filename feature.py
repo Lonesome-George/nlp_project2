@@ -8,16 +8,15 @@
 
 import os
 from base import *
+from preprocess import trainset_dir, trainset_prefix
 from utils import proc_line, divide_line
 from nlpir import Seg
 
-data_dir = "./TrainingSet"
-trainset_prefix = "project2_TrainingSet7000_"
-featureset_dir = os.path.join(data_dir, "featureset")
-total_featset_prefix = "total_featureset_"
-extracted_featset_prefix = "extracted_featureset_"
+featureset_dir = os.path.join(trainset_dir, "featureset")
+total_featureset_prefix = "total_featureset_"
+extracted_featureset_prefix = "extracted_featureset_"
 
-W = 1
+W = 2
 
 # 特征名称
 feature_name_list = ['left_words', 'middle_words', 'right_words',
@@ -25,22 +24,22 @@ feature_name_list = ['left_words', 'middle_words', 'right_words',
                      '2p_dist', 'nearest_common_ancestor']
 
 # 特征全集
-total_featureset_dict = {}
+total_featureset_list = []
 # 每一种关系的每一条新闻标题对应的特征
-featureset_dict = {}
+cls_featureset_list = []
 # 抽取的特征词全集
 extracted_featureset_dict = {}
 
 def init_feature_set():
-    for relation in relations:
-        total_featureset_dict[relation] = dict()
-        featureset_dict[relation] = dict()
+    for label in range(len(relation_list)):
+        total_featureset_list.append(dict())
+        cls_featureset_list.append(dict())
         for feature_name in feature_name_list:
-            total_featureset_dict[relation][feature_name] = set()
-            featureset_dict[relation][feature_name] = []
+            total_featureset_list[label][feature_name] = set()
+            cls_featureset_list[label][feature_name] = []
 
 # 处理第一个人物实体左边的文本,生成该文本的词语和词性
-def proc_left_segments(relation, segments):
+def proc_left_segments(label, segments):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -51,13 +50,13 @@ def proc_left_segments(relation, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_dict[relation]['left_words'].add(word)
-        total_featureset_dict[relation]['p1_left_pos'].add(pos)
-    featureset_dict[relation]['left_words'].append(word_list)
-    featureset_dict[relation]['p1_left_pos'].append(pos_list)
+        total_featureset_list[label]['left_words'].add(word)
+        total_featureset_list[label]['p1_left_pos'].add(pos)
+    cls_featureset_list[label]['left_words'].append(word_list)
+    cls_featureset_list[label]['p1_left_pos'].append(pos_list)
 
 # 处理两个人物实体之间的文本,生成该文本的词语和词性
-def proc_middle_segments(relation, segments):
+def proc_middle_segments(label, segments):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -68,15 +67,15 @@ def proc_middle_segments(relation, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_dict[relation]['middle_words'].add(word)
-        total_featureset_dict[relation]['p1_right_pos'].add(pos)
-        total_featureset_dict[relation]['p2_left_pos'].add(pos)
-    featureset_dict[relation]['middle_words'].append(word_list)
-    featureset_dict[relation]['p1_right_pos'].append(pos_list)
-    featureset_dict[relation]['p2_left_pos'].append(pos_list)
+        total_featureset_list[label]['middle_words'].add(word)
+        total_featureset_list[label]['p1_right_pos'].add(pos)
+        total_featureset_list[label]['p2_left_pos'].add(pos)
+    cls_featureset_list[label]['middle_words'].append(word_list)
+    cls_featureset_list[label]['p1_right_pos'].append(pos_list)
+    cls_featureset_list[label]['p2_left_pos'].append(pos_list)
 
 # 处理第二个人物实体右边的文本,生成该文本的词语和词性
-def proc_right_segments(relation, segments):
+def proc_right_segments(label, segments):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -87,21 +86,24 @@ def proc_right_segments(relation, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_dict[relation]['right_words'].add(word)
-        total_featureset_dict[relation]['p2_right_pos'].add(pos)
-    featureset_dict[relation]['right_words'].append(word_list)
-    featureset_dict[relation]['p2_right_pos'].append(pos_list)
+        total_featureset_list[label]['right_words'].add(word)
+        total_featureset_list[label]['p2_right_pos'].add(pos)
+    cls_featureset_list[label]['right_words'].append(word_list)
+    cls_featureset_list[label]['p2_right_pos'].append(pos_list)
 
 # 生成特征全集
-def gen_total_featureset(relation):
-    filename = trainset_prefix + relation
-    file_in = os.path.join(data_dir, filename)
+def gen_total_featureset(label):
+    filename = trainset_prefix + str(label)
+    file_in = os.path.join(trainset_dir, filename)
     fi = open(file_in.decode('utf-8'), 'r')
+    total_texts = 0
     for line in fi:
+        if label == 19 and total_texts > 200: break # 控制无关系的训练集,不能太大
         seg_list = proc_line(line, '||')
-        proc_left_segments(relation, seg_list[0])
-        proc_middle_segments(relation, seg_list[1])
-        proc_right_segments(relation, seg_list[2])
+        proc_left_segments(label, seg_list[0])
+        proc_middle_segments(label, seg_list[1])
+        proc_right_segments(label, seg_list[2])
+        total_texts += 1
     fi.close()
 
 # 保存特征全集至文件
@@ -109,15 +111,15 @@ def save_total_featureset():
     if not os.path.isdir(featureset_dir):
         os.mkdir(featureset_dir)
     for feature_name in feature_name_list:
-        filename = total_featset_prefix + feature_name
+        filename = total_featureset_prefix + feature_name
         file_out = os.path.join(featureset_dir, filename)
         fo = open(file_out.decode('utf-8'), 'w')
-        feature_set = set()
-        for relation in relations:
-            featset_dict = total_featureset_dict[relation]
-            feature_set = feature_set.union(featset_dict[feature_name])
-        string = ""
-        for feature in feature_set:
+        total_featureset = set()
+        for label in range(len(relation_list)):
+            featureset_dict = total_featureset_list[label]
+            total_featureset = total_featureset.union(featureset_dict[feature_name])
+        string = ''
+        for feature in total_featureset:
             string += feature + ';'
         fo.write(string)
         fo.close()
@@ -148,23 +150,23 @@ def extract_feature():
     for feature_name in feature_name_list:
         extracted_featset = set() # 抽取的特征列表
         # 遍历关系种类列表,每一种关系都抽取出一定数目的特征词
-        for rel1 in relations:
-            rel_featset_dict = total_featureset_dict[rel1]
-            # 构造这种关系对应的本特征集和其他特征集
-            cls_featset_list = featureset_dict[rel1][feature_name]
+        for label1 in range(len(relation_list)):
+            rel_featset_dict = total_featureset_list[label1]
+            # 构造这种关系对应的此类特征集和其他类特征集
+            cls_featset_list = cls_featureset_list[label1][feature_name]
             other_featset_list = []
-            for rel2 in relations:
-                if rel1 == rel2: continue
-                other_featset_list.append(featureset_dict[rel2][feature_name])
+            for label2 in range(len(relation_list)):
+                if label1 == label2: continue
+                other_featset_list.append(cls_featureset_list[label2][feature_name])
             rel_featset = rel_featset_dict[feature_name]
             scores = std_chi_scores(rel_featset, cls_featset_list, other_featset_list)
-            scores_list = sorted(scores.items(), key=lambda x:x[0], reverse=True)
+            scores_list = sorted(scores.items(), key=lambda x:x[1], reverse=True)
             # 取出前面W个特征词
             for feat, score in scores_list[0:W]:
                 extracted_featset.add(feat)
         extracted_featureset_dict[feature_name] = extracted_featset
         # 将抽取的特征集写入文件
-        filename = extracted_featset_prefix + feature_name
+        filename = extracted_featureset_prefix + feature_name
         file_out = os.path.join(featureset_dir, filename)
         fo = open(file_out, 'w')
         string = ""
@@ -177,7 +179,7 @@ def extract_feature():
 # 读取抽取的特征集
 def read_extracted_featureset():
     for feature_name in feature_name_list:
-        filename = extracted_featset_prefix + feature_name
+        filename = extracted_featureset_prefix + feature_name
         file_in = os.path.join(featureset_dir, filename)
         fi = open(file_in, 'r')
         line = fi.readline()
@@ -242,8 +244,8 @@ def add_features(feats, features):
 
 if __name__ == '__main__':
     init_feature_set()
-    for relation in relations:
-        gen_total_featureset(relation)
+    for label in range(len(relation_list)):
+        gen_total_featureset(label)
     save_total_featureset()
     extract_feature()
     # features = feature('成龙羡慕房祖名签到自己偶像', '成龙', '房祖名')
