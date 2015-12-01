@@ -1,6 +1,7 @@
 #coding=utf-8
 
 from base import raw_trainingset
+from preprocess import new_trainingset
 from feature import feature
 from corpus import gen_training_corpus
 
@@ -43,7 +44,8 @@ class jc_model:
     def load_data(self):
         features = []
         targets = []
-        f_train = open(raw_trainingset, 'r')
+        # f_train = open(raw_trainingset, 'r')
+        f_train = open(new_trainingset, 'r') # 使用80%训练集
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)
@@ -83,7 +85,8 @@ class baseline_model:
     def load_data(self):
         features = []
         targets = []
-        f_train = open(raw_trainingset, 'r')
+        # f_train = open(raw_trainingset, 'r')
+        f_train = open(new_trainingset, 'r')
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)
@@ -106,10 +109,13 @@ class baseline_model:
     def predict_proba(self, feature):
         return self.clf.predict_proba(feature)
 
-if __name__ == '__main__':
-    model = jc_model()
-    # model = baseline_model()
+def model_main():
+    # model = jc_model()
+    model = baseline_model()
     model.load_data()
     model.train()
     model.test_model()
     model.save_model()
+
+if __name__ == '__main__':
+    model_main()

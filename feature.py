@@ -8,7 +8,7 @@
 
 import os
 from base import *
-from preprocess import trainset_dir, trainset_prefix
+from preprocess import trainset_dir, parsing_prefix
 from utils import proc_line, divide_line
 from nlpir import Seg
 
@@ -93,7 +93,7 @@ def proc_right_segments(label, segments):
 
 # 生成特征全集
 def gen_total_featureset(label):
-    filename = trainset_prefix + str(label)
+    filename = parsing_prefix + str(label)
     file_in = os.path.join(trainset_dir, filename)
     fi = open(file_in.decode('utf-8'), 'r')
     total_texts = 0
@@ -124,7 +124,7 @@ def save_total_featureset():
         fo.write(string)
         fo.close()
 
-# 统计一个特征在特征集中的频数分布
+# 统计特征在特征集中的频数分布
 def stat_chi_dist(feature, featureset_list):
     A = C = 0 # A表示包含词w的标题数目,C表示不包含词w的标题数目
     for featureset in featureset_list:
@@ -169,7 +169,7 @@ def extract_feature():
         filename = extracted_featureset_prefix + feature_name
         file_out = os.path.join(featureset_dir, filename)
         fo = open(file_out, 'w')
-        string = ""
+        string = ''
         for extracted_feat in extracted_featset:
             string += extracted_feat + ';'
         string += '\n'
@@ -197,13 +197,15 @@ def feature(title, person1, person2):
         # 读取文件
         read_extracted_featureset()
     sp_list = divide_line(title, person1, person2)
-    word_list = []
-    pos_list = []
+    ps_distance = 0 # 实体之间的词距
     idx = 0
     features = []
+    # 词语以及词性特征
     for sp in sp_list:
         if sp == '':
             sp = ' ' # 以防下面调用Seg()报错
+        word_list = []
+        pos_list = []
         for t in Seg(sp):
             word_list.append(t[0])
             pos_list.append(t[1])
@@ -214,6 +216,7 @@ def feature(title, person1, person2):
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_left_pos'])
             add_features(feats, features)
         elif idx == 2:
+            ps_distance = len(word_list)
             feats = sub_feature(word_list, extracted_featureset_dict['middle_words'])
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_right_pos'])
@@ -225,6 +228,10 @@ def feature(title, person1, person2):
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p2_right_pos'])
             add_features(feats, features)
+    # 实体之间的词距
+    add_features([ps_distance], features)
+    # 实体的最近公共祖先
+
     return features
 
 # 生成子特征
@@ -242,7 +249,7 @@ def add_features(feats, features):
     for feat in feats:
         features.append(feat)
 
-if __name__ == '__main__':
+def feature_main():
     init_feature_set()
     for label in range(len(relation_list)):
         gen_total_featureset(label)
@@ -251,3 +258,6 @@ if __name__ == '__main__':
     # features = feature('成龙羡慕房祖名签到自己偶像', '成龙', '房祖名')
     # features = feature('黄义达与朱孝天前女友佐藤麻衣擦出爱火花(图)', '朱孝天', '佐藤麻衣')
     # print features
+
+if __name__ == '__main__':
+    feature_main()

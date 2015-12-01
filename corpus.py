@@ -19,14 +19,10 @@ class corpus:
 
 def gen_training_corpus(text):
     seg_list = proc_line(text, '\t')
-    relation = seg_list[0].strip()
-    person1 = seg_list[1].strip()
-    person2 = seg_list[2].strip()
-    title = seg_list[3].strip()
-    has_rel = seg_list[4].strip() # 是否的确有对应关系
-    if has_rel == '0':
-        relation = 'null'
-    label = fetch_label(relation)
+    person1 = seg_list[0].strip()
+    person2 = seg_list[1].strip()
+    title = seg_list[2].strip()
+    label = int(seg_list[3].strip())
     return corpus(title, person1, person2, label)
 
 def gen_test_corpora(title):
