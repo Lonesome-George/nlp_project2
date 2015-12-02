@@ -23,3 +23,18 @@ def divide_line(line, sep1, sep2):
         middle = sp_list[0]
         right = sp_list[1]
     return [left, middle, right]
+
+# 取出k个元素
+def fetch_elements(elements, k, reverse=False):
+    if k >= len(elements):
+        return elements
+    if not reverse:
+        return elements[0:k]
+    else:
+        return elements[len(elements)-k:len(elements)]
+
+# 将元素列表添加进集合
+def add_to_set(e_list, e_set):
+    for elem in e_list:
+        e_set.add(elem)
+    return e_set

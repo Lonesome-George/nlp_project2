@@ -1,7 +1,7 @@
 #coding=utf-8
 
 # 选取以下四类特征
-# 人物实体对的上下文特征: 两个人物实体之间的 W 个词语、 前一个人物实体的左边的两个词语和后一个人物实体右边的两个词语。
+# 实体上下文的词语: 人物实体前后 W 个词语
 # 实体上下文的词性: 人物实体前后 W 个词的词性。
 # 距离特征: 前一个人物实体和后一个人物实体之间的词距。
 # 句法特征: 人物实体之间的实体对与句法路径的最近公共祖先。
@@ -9,17 +9,21 @@
 import os
 from base import *
 from preprocess import trainset_dir, parsing_prefix
-from utils import proc_line, divide_line
+from utils import proc_line, divide_line, fetch_elements, add_to_set
 from nlpir import Seg
 
 featureset_dir = os.path.join(trainset_dir, "featureset")
 total_featureset_prefix = "total_featureset_"
 extracted_featureset_prefix = "extracted_featureset_"
 
-W = 2
+words_fetched = 3 # 取出的词语数目
+TopK = 5 # 每种关系每种特征取出的元素数目
 
 # 特征名称
-feature_name_list = ['left_words', 'middle_words', 'right_words',
+# feature_name_list = ['left_words', 'middle_words', 'right_words',
+#                      'p1_left_pos', 'p1_right_pos', 'p2_left_pos', 'p2_right_pos',
+#                      '2p_dist', 'nearest_common_ancestor']
+feature_name_list = ['p1_left_words', 'p1_right_words', 'p2_left_words', 'p2_right_words',
                      'p1_left_pos', 'p1_right_pos', 'p2_left_pos', 'p2_right_pos',
                      '2p_dist', 'nearest_common_ancestor']
 
@@ -50,10 +54,12 @@ def proc_left_segments(label, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_list[label]['left_words'].add(word)
-        total_featureset_list[label]['p1_left_pos'].add(pos)
-    cls_featureset_list[label]['left_words'].append(word_list)
-    cls_featureset_list[label]['p1_left_pos'].append(pos_list)
+    left_words = fetch_elements(word_list, words_fetched)
+    left_pos = fetch_elements(pos_list, words_fetched)
+    add_to_set(left_words, total_featureset_list[label]['p1_left_words'])
+    add_to_set(left_pos, total_featureset_list[label]['p1_left_pos'])
+    cls_featureset_list[label]['p1_left_words'].append(left_words)
+    cls_featureset_list[label]['p1_left_pos'].append(left_pos)
 
 # 处理两个人物实体之间的文本,生成该文本的词语和词性
 def proc_middle_segments(label, segments):
@@ -67,12 +73,18 @@ def proc_middle_segments(label, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_list[label]['middle_words'].add(word)
-        total_featureset_list[label]['p1_right_pos'].add(pos)
-        total_featureset_list[label]['p2_left_pos'].add(pos)
-    cls_featureset_list[label]['middle_words'].append(word_list)
-    cls_featureset_list[label]['p1_right_pos'].append(pos_list)
-    cls_featureset_list[label]['p2_left_pos'].append(pos_list)
+    right_words = fetch_elements(word_list, words_fetched, reverse=True)
+    right_pos = fetch_elements(pos_list, words_fetched, reverse=True)
+    left_words = fetch_elements(word_list, words_fetched)
+    left_pos = fetch_elements(pos_list, words_fetched)
+    add_to_set(right_words, total_featureset_list[label]['p1_right_words'])
+    add_to_set(right_pos, total_featureset_list[label]['p1_right_pos'])
+    add_to_set(left_words, total_featureset_list[label]['p2_left_words'])
+    add_to_set(left_pos, total_featureset_list[label]['p2_left_pos'])
+    cls_featureset_list[label]['p1_right_words'].append(right_words)
+    cls_featureset_list[label]['p1_right_pos'].append(right_pos)
+    cls_featureset_list[label]['p2_left_words'].append(left_words)
+    cls_featureset_list[label]['p2_left_pos'].append(left_pos)
 
 # 处理第二个人物实体右边的文本,生成该文本的词语和词性
 def proc_right_segments(label, segments):
@@ -86,10 +98,12 @@ def proc_right_segments(label, segments):
         pos = sp_list[1]
         word_list.append(word)
         pos_list.append(pos)
-        total_featureset_list[label]['right_words'].add(word)
-        total_featureset_list[label]['p2_right_pos'].add(pos)
-    cls_featureset_list[label]['right_words'].append(word_list)
-    cls_featureset_list[label]['p2_right_pos'].append(pos_list)
+    right_words = fetch_elements(word_list, words_fetched, reverse=True)
+    right_pos = fetch_elements(pos_list, words_fetched, reverse=True)
+    add_to_set(right_words, total_featureset_list[label]['p2_right_words'])
+    add_to_set(right_pos, total_featureset_list[label]['p2_right_pos'])
+    cls_featureset_list[label]['p2_right_words'].append(right_words)
+    cls_featureset_list[label]['p2_right_pos'].append(right_pos)
 
 # 生成特征全集
 def gen_total_featureset(label):
@@ -161,8 +175,8 @@ def extract_feature():
             rel_featset = rel_featset_dict[feature_name]
             scores = std_chi_scores(rel_featset, cls_featset_list, other_featset_list)
             scores_list = sorted(scores.items(), key=lambda x:x[1], reverse=True)
-            # 取出前面W个特征词
-            for feat, score in scores_list[0:W]:
+            # 取出前面K个特征词
+            for feat, score in scores_list[0:TopK]:
                 extracted_featset.add(feat)
         extracted_featureset_dict[feature_name] = extracted_featset
         # 将抽取的特征集写入文件
@@ -211,20 +225,22 @@ def feature(title, person1, person2):
             pos_list.append(t[1])
         idx += 1
         if idx == 1:
-            feats = sub_feature(word_list, extracted_featureset_dict['left_words'])
+            feats = sub_feature(word_list, extracted_featureset_dict['p1_left_words'])
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_left_pos'])
             add_features(feats, features)
         elif idx == 2:
             ps_distance = len(word_list)
-            feats = sub_feature(word_list, extracted_featureset_dict['middle_words'])
+            feats = sub_feature(word_list, extracted_featureset_dict['p1_right_words'])
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p1_right_pos'])
+            add_features(feats, features)
+            feats = sub_feature(word_list, extracted_featureset_dict['p2_left_words'])
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p2_left_pos'])
             add_features(feats, features)
         elif idx == 3:
-            feats = sub_feature(word_list, extracted_featureset_dict['right_words'])
+            feats = sub_feature(word_list, extracted_featureset_dict['p2_right_words'])
             add_features(feats, features)
             feats = sub_feature(pos_list, extracted_featureset_dict['p2_right_pos'])
             add_features(feats, features)

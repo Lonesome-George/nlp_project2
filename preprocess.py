@@ -8,7 +8,7 @@ from nlpir import Seg
 
 trainset_dir = "./TrainingSet"
 parsing_prefix = "parsing_"
-new_trainingset = './TrainingSet/project2_TrainingSet7000_New'
+part_trainingset = './TrainingSet/project2_TrainingSet7000_Part'
 validation_set = './TrainingSet/project2_ValidationSet'
 
 # 预处理训练集,保存成person1\tperson2\ttitle\tlabel的格式
@@ -22,8 +22,8 @@ def preproc_trainset():
         person1 = seg_list[1].strip()
         person2 = seg_list[2].strip()
         title = seg_list[3].strip()
-        has_rel = seg_list[4].strip() # 是否的确有对应关系
-        if has_rel == '0':
+        has_rel = int(seg_list[4].strip()) # 是否的确有对应关系
+        if has_rel == 0:
             relation = 'null'
         label = fetch_label(relation)
         fo_proced_train.write('%s\t%s\t%s\t%d\n' %(person1, person2, title, label))
@@ -62,13 +62,13 @@ def proc_trainset():
         fo.close()
 
 # divide training set into 2 parts: one for training, the other for validating
-def divide_trainset():
+def divide_trainset(trainset_ratio):
     stat_samples = [] # 每一类关系的训练样本数
     samples_in_trainset = [] # 当前写入新训练集中的样本数
     for label in range(len(relation_list)):
         stat_samples.append(0)
         samples_in_trainset.append(0)
-    fo_new_trainset = open(new_trainingset, 'w')
+    fo_new_trainset = open(part_trainingset, 'w')
     fo_validation_set = open(validation_set, 'w')
     fi_train = open(proced_trainingset, 'r')
     for line in fi_train:
@@ -77,7 +77,7 @@ def divide_trainset():
     fi_train.seek(0)
     for line in fi_train:
         corpus = gen_training_corpus(line)
-        if samples_in_trainset[corpus.label] > 0.8*stat_samples[corpus.label]:
+        if samples_in_trainset[corpus.label] > trainset_ratio * stat_samples[corpus.label]:
             fo_validation_set.write(line)
         else:
             fo_new_trainset.write(line)
@@ -86,8 +86,28 @@ def divide_trainset():
     fo_new_trainset.close()
     fo_validation_set.close()
 
+# 提取人名
+def fetch_names():
+    name_set = set()
+    person_name_file = './userdict.txt'
+    fo_name = open(person_name_file, 'w')
+    fi_raw_train = open(raw_trainingset, 'r')
+    for line in fi_raw_train:
+        seg_list = proc_line(line, '\t')
+        person1 = seg_list[1].strip()
+        person2 = seg_list[2].strip()
+        has_rel = int(seg_list[4].strip())
+        if has_rel == 1:
+            name_set.add(person1)
+            name_set.add(person2)
+    for name in name_set:
+        fo_name.write('%s\tnr\n' % name)
+    fi_raw_train.close()
+    fo_name.close()
+
 if __name__ == '__main__':
     # preproc_trainset()
     # proc_trainset()
-    # divide_trainset()
+    # divide_trainset(0.5)
+    # fetch_names()
     pass

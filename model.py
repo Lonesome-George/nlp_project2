@@ -1,7 +1,7 @@
 #coding=utf-8
 
-from base import raw_trainingset
-from preprocess import new_trainingset
+from base import raw_trainingset, proced_trainingset
+from preprocess import part_trainingset
 from feature import feature
 from corpus import gen_training_corpus
 
@@ -12,6 +12,7 @@ from sklearn import cross_validation
 from sklearn.externals import joblib
 import numpy as np
 from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
+from sklearn.ensemble import *
 
 
 class jc_model:
@@ -21,31 +22,29 @@ class jc_model:
     clf = None
 
     def __init__(self):
-        # self.clf = svm.LinearSVC()
         # self.clf = svm.NuSVR(kernel='sigmoid')
         # self.clf = multiclass.OneVsOneClassifier(SVC(kernel='sigmoid', probability=True)) # 里面的参数可以随意设置
         # self.clf = multiclass.OneVsRestClassifier(SVR())
         self.clf = svm.SVC(kernel='sigmoid', probability=True)
 
     def load_model(self):
-        # self.clf = joblib.load('./pkl/linearsvc.pkl')
         # self.clf = joblib.load('./pkl/nusvr.pkl')
         # self.clf = joblib.load('./pkl/ovoclf.pkl')
         # self.clf = joblib.load('./pkl/ovrclf.pkl')
         self.clf = joblib.load('./pkl/svc.pkl')
 
     def save_model(self):
-        # joblib.dump(self.clf, './pkl/linearsvc.pkl')
-        # joblib.dump(self.clf, './pkl/nusvr.pkl')
-        # joblib.dump(self.clf, './pkl/ovoclf.pkl')
-        # joblib.dump(self.clf, './pkl/ovrclf.pkl')
-        joblib.dump(self.clf, './pkl/svc.pkl')
+        # joblib.dump(self.clf, './pkl/linearsvc.pkl', compress=3)
+        # joblib.dump(self.clf, './pkl/nusvr.pkl', compress=3)
+        # joblib.dump(self.clf, './pkl/ovoclf.pkl', compress=3)
+        # joblib.dump(self.clf, './pkl/ovrclf.pkl', compress=3)
+        joblib.dump(self.clf, './pkl/svc.pkl', compress=3)
 
     def load_data(self):
         features = []
         targets = []
         # f_train = open(raw_trainingset, 'r')
-        f_train = open(new_trainingset, 'r') # 使用80%训练集
+        f_train = open(part_trainingset, 'r') # 使用80%训练集
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)
@@ -74,19 +73,25 @@ class baseline_model:
     clf = None
 
     def __init__(self):
-        self.clf = BernoulliNB()
+        # self.clf = BernoulliNB()
+        # self.clf = AdaBoostClassifier() # 不好使，通通分到几类
+        self.clf = RandomForestClassifier()
 
     def load_model(self):
-        self.clf = joblib.load('./pkl/bernoullinb.pkl')
+        # self.clf = joblib.load('./pkl/bernoullinb.pkl')
+        # self.clf = joblib.load('./pkl/adaboost.pkl')
+        self.clf = joblib.load('./pkl/randomforest.pkl')
 
     def save_model(self):
-        joblib.dump(self.clf, './pkl/bernoullinb.pkl')
+        # joblib.dump(self.clf, './pkl/bernoullinb.pkl', compress=3)
+        # joblib.dump(self.clf, './pkl/adaboost.pkl', compress=3)
+        joblib.dump(self.clf, './pkl/randomforest.pkl', compress=3)
 
     def load_data(self):
         features = []
         targets = []
-        # f_train = open(raw_trainingset, 'r')
-        f_train = open(new_trainingset, 'r')
+        f_train = open(proced_trainingset, 'r')
+        # f_train = open(part_trainingset, 'r')
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)
