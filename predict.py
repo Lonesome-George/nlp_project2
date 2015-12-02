@@ -6,14 +6,12 @@ from preprocess import validation_set, proced_trainingset
 from corpus import gen_training_corpus, gen_test_corpora
 from feature import feature
 from model import baseline_model, jc_model
+from nlpir import Seg
 
 test_file = './TestSet/project2_TestSet3000'
 test_result = './TestSet/test_result'
-# cls_model = jc_model()
-cls_model = baseline_model()
-cls_model.load_model()
 
-def predict_main():
+def predict_main(cls_model):
     fi_test = open(test_file, 'r')
     fo_result = open(test_result, 'w')
     total_insts = 0  # 预测样本的实例数
@@ -40,21 +38,21 @@ def predict_main():
                     person2 = corpus.person2
                     max_proba = pred_cls[0][label]
                     pred_label = label
-            if pred_label > -1 and pred_label < 19:
-                fo_result.write('%s\t%s\t%s\t%s\t1\n' % (relation_list[pred_label], corpus.person1, corpus.person2, title))
-            else:
-                fo_result.write('null\t%s\t%s\t%s\t0\n' % (corpus.person1, corpus.person2, title))
+            # if pred_label > -1 and pred_label < 19:
+            #     fo_result.write('%s\t%s\t%s\t%s\t1\n' % (relation_list[pred_label], corpus.person1, corpus.person2, title))
+            # else:
+            #     fo_result.write('null\t%s\t%s\t%s\t0\n' % (corpus.person1, corpus.person2, title))
         pred_insts[pred_label] += 1
-        # if pred_label > -1 and pred_label < 19:
-        #     fo_result.write('%s\t%s\t%s\t%s\t1\n' % (relation_list[pred_label], person1, person2, title))
-        # else:
-        #     fo_result.write('null\t%s\t%s\t%s\t0\n' % (person1, person, title))
+        if pred_label > -1 and pred_label < 19:
+            fo_result.write('%s\t%s\t%s\t%s\t1\n' % (relation_list[pred_label], person1, person2, title))
+        else:
+            fo_result.write('null\t%s\t%s\t%s\t0\n' % (person1, person2, title))
     fi_test.close()
     fo_result.close()
     print total_insts, pred_insts
 
 # validate
-def validate():
+def validate(cls_model):
     fi_validate = open(validation_set, 'r')
     # fi_validate = open(proced_trainingset, 'r')
     total_insts = [] # 预测样本中每一类关系的实例数
@@ -102,6 +100,30 @@ def validate():
     print 'predict instances', pred_insts
     print '  right instances', right_insts
 
+# 提取出不能识别出人名的语料
+def fetch_corpora_nner():
+    fi_test = open(test_file, 'r')
+    fo_copora_nner = open('./TestSet/corpora_nner.txt', 'w')
+    fo_copora_nner.write('title\t已经识别出来的人名\n')
+    for line in fi_test:
+        title = line.rstrip('\n')
+        persons = []
+        for t in Seg(title):
+            if t[1] == 'nr': # 识别人名
+                persons.append(t[0])
+        length = len(persons)
+        if length < 2: # 无法识别出两个人名
+            fo_copora_nner.write('%s==>' % title)
+            for person in persons:
+                fo_copora_nner.write('%s\t' % person)
+            fo_copora_nner.write('\n')
+    fi_test.close()
+    fo_copora_nner.close()
+
 if __name__ == '__main__':
-    predict_main()
-    # validate()
+    # cls_model = jc_model()
+    cls_model = baseline_model()
+    cls_model.load_model()
+    predict_main(cls_model)
+    # validate(cls_model)
+    # fetch_copora_nner()
