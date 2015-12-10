@@ -11,7 +11,7 @@ from nlpir import Seg
 test_file = './TestSet/project2_TestSet3000'
 test_result = './TestSet/test_result'
 
-def predict_main(cls_model):
+def predict(cls_model):
     fi_test = open(test_file, 'r')
     fo_result = open(test_result, 'w')
     total_insts = 0  # 预测样本的实例数
@@ -46,7 +46,7 @@ def predict_main(cls_model):
         if pred_label > -1 and pred_label < 19:
             fo_result.write('%s\t%s\t%s\t%s\t1\n' % (relation_list[pred_label], person1, person2, title))
         else:
-            fo_result.write('null\t%s\t%s\t%s\t0\n' % (person1, person2, title))
+            fo_result.write('null\tnull\tnull\t%s\t0\n' % (title))
     fi_test.close()
     fo_result.close()
     print total_insts, pred_insts
@@ -54,6 +54,9 @@ def predict_main(cls_model):
 # validate
 def validate(cls_model):
     fi_validate = open(validation_set, 'r')
+    # fo_validate_result = open('./validate_result.txt', 'a+')
+    # fo_validate_result.write('Relation,Precision,Recall,F1\n')
+    print 'Relation,Precision,Recall,F1'
     # fi_validate = open(proced_trainingset, 'r')
     total_insts = [] # 预测样本中每一类关系的实例数
     pred_insts = []  # 预测的实例数目
@@ -78,6 +81,8 @@ def validate(cls_model):
         if pred_label == corpus.label:
             right_insts[corpus.label] += 1
     fi_validate.close()
+    total_precision = 0.0
+    total_recall = 0.0
     total_fmeasure = 0.0
     for label in range(len(relation_list)):
         if pred_insts[label] == 0:
@@ -90,15 +95,25 @@ def validate(cls_model):
         else:
             fmeasure = 2 * precision * recall / (precision + recall)
         if label < 19:
+            total_precision += precision
+            total_recall += recall
             total_fmeasure += fmeasure
+        print '%s,%f,%f,%f' \
+              % (relation_list[label], precision, recall, fmeasure)
+        # fo_validate_result.write('%s,%f,%f,%f\n' \
+        #       % (relation_list[label], precision, recall, fmeasure))
     #     logger.info('[%s]%s:%d, %s=%f, %s=%f, %s=%f' \
     #           % (relation_list[label], 'total instances', total_insts[label],
     #              'precision', precision, 'recall', recall,
     #              'f-measure', fmeasure))
     # logger.info('average f-measure: %f' % (total_fmeasure / 19))
-    print '  total instances', total_insts
-    print 'predict instances', pred_insts
-    print '  right instances', right_insts
+    print '%f,%f,%f' % (total_precision / 19, total_recall / 19, total_fmeasure / 19)
+    # print 'average precision: %f' % (total_precision / 19)
+    # print 'average recall: %f' % (total_recall / 19)
+    # print 'average f-measure: %f' % (total_fmeasure / 19)
+    # print '  total instances', total_insts
+    # print 'predict instances', pred_insts
+    # print '  right instances', right_insts
 
 # 提取出不能识别出人名的语料
 def fetch_corpora_nner():
@@ -124,6 +139,6 @@ if __name__ == '__main__':
     # cls_model = jc_model()
     cls_model = baseline_model()
     cls_model.load_model()
-    predict_main(cls_model)
-    # validate(cls_model)
+    # predict(cls_model)
+    validate(cls_model)
     # fetch_copora_nner()

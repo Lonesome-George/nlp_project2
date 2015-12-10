@@ -16,13 +16,10 @@ featureset_dir = os.path.join(trainset_dir, "featureset")
 total_featureset_prefix = "total_featureset_"
 extracted_featureset_prefix = "extracted_featureset_"
 
-words_fetched = 3 # 取出的词语数目
-TopK = 5 # 每种关系每种特征取出的元素数目
+# words_fetched = 2 # 取出的词语数目
+# TopK = 30 # 每种关系每种特征取出的元素数目
 
 # 特征名称
-# feature_name_list = ['left_words', 'middle_words', 'right_words',
-#                      'p1_left_pos', 'p1_right_pos', 'p2_left_pos', 'p2_right_pos',
-#                      '2p_dist', 'nearest_common_ancestor']
 feature_name_list = ['p1_left_words', 'p1_right_words', 'p2_left_words', 'p2_right_words',
                      'p1_left_pos', 'p1_right_pos', 'p2_left_pos', 'p2_right_pos',
                      '2p_dist', 'nearest_common_ancestor']
@@ -43,7 +40,7 @@ def init_feature_set():
             cls_featureset_list[label][feature_name] = []
 
 # 处理第一个人物实体左边的文本,生成该文本的词语和词性
-def proc_left_segments(label, segments):
+def proc_left_segments(label, segments, words_fetched):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -62,7 +59,7 @@ def proc_left_segments(label, segments):
     cls_featureset_list[label]['p1_left_pos'].append(left_pos)
 
 # 处理两个人物实体之间的文本,生成该文本的词语和词性
-def proc_middle_segments(label, segments):
+def proc_middle_segments(label, segments, words_fetched):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -87,7 +84,7 @@ def proc_middle_segments(label, segments):
     cls_featureset_list[label]['p2_left_pos'].append(left_pos)
 
 # 处理第二个人物实体右边的文本,生成该文本的词语和词性
-def proc_right_segments(label, segments):
+def proc_right_segments(label, segments, words_fetched):
     seg_list = proc_line(segments, ';')
     word_list = []
     pos_list =[]
@@ -106,7 +103,7 @@ def proc_right_segments(label, segments):
     cls_featureset_list[label]['p2_right_pos'].append(right_pos)
 
 # 生成特征全集
-def gen_total_featureset(label):
+def gen_total_featureset(label, words_fetched):
     filename = parsing_prefix + str(label)
     file_in = os.path.join(trainset_dir, filename)
     fi = open(file_in.decode('utf-8'), 'r')
@@ -114,9 +111,9 @@ def gen_total_featureset(label):
     for line in fi:
         if label == 19 and total_texts > 200: break # 控制无关系的训练集,不能太大
         seg_list = proc_line(line, '||')
-        proc_left_segments(label, seg_list[0])
-        proc_middle_segments(label, seg_list[1])
-        proc_right_segments(label, seg_list[2])
+        proc_left_segments(label, seg_list[0], words_fetched)
+        proc_middle_segments(label, seg_list[1], words_fetched)
+        proc_right_segments(label, seg_list[2], words_fetched)
         total_texts += 1
     fi.close()
 
@@ -159,7 +156,7 @@ def std_chi_scores(featureset, cls_featureset_list, other_featureset_list):
     return scores
 
 # 抽取特征
-def extract_feature():
+def extract_feature(topK):
     # 为每一种关系的每一种特征抽取出特定数目的特征词
     for feature_name in feature_name_list:
         extracted_featset = set() # 抽取的特征列表
@@ -176,7 +173,7 @@ def extract_feature():
             scores = std_chi_scores(rel_featset, cls_featset_list, other_featset_list)
             scores_list = sorted(scores.items(), key=lambda x:x[1], reverse=True)
             # 取出前面K个特征词
-            for feat, score in scores_list[0:TopK]:
+            for feat, score in scores_list[0:topK]:
                 extracted_featset.add(feat)
         extracted_featureset_dict[feature_name] = extracted_featset
         # 将抽取的特征集写入文件
@@ -261,19 +258,21 @@ def sub_feature(featureset, total_featureset):
     return features
 
 # 将子特征加入特征向量
-def add_features(feats, features):
-    for feat in feats:
+def add_features(subfeats, features):
+    for feat in subfeats:
         features.append(feat)
 
-def feature_main():
+def feature_main(words_fetched, topK):
     init_feature_set()
     for label in range(len(relation_list)):
-        gen_total_featureset(label)
+        gen_total_featureset(label, words_fetched)
     save_total_featureset()
-    extract_feature()
+    extract_feature(topK)
     # features = feature('成龙羡慕房祖名签到自己偶像', '成龙', '房祖名')
     # features = feature('黄义达与朱孝天前女友佐藤麻衣擦出爱火花(图)', '朱孝天', '佐藤麻衣')
     # print features
 
 if __name__ == '__main__':
-    feature_main()
+    words_fetched = 2 # 取出的词语数目
+    topK = 30 # 每种关系每种特征取出的元素数目
+    feature_main(words_fetched, topK)

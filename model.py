@@ -43,8 +43,8 @@ class jc_model:
     def load_data(self):
         features = []
         targets = []
-        # f_train = open(raw_trainingset, 'r')
-        f_train = open(part_trainingset, 'r') # 使用80%训练集
+        # f_train = open(proced_trainingset, 'r')
+        f_train = open(part_trainingset, 'r') # 使用60%训练集
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)
@@ -90,8 +90,8 @@ class baseline_model:
     def load_data(self):
         features = []
         targets = []
-        f_train = open(proced_trainingset, 'r')
-        # f_train = open(part_trainingset, 'r')
+        # f_train = open(proced_trainingset, 'r')
+        f_train = open(part_trainingset, 'r')
         for line in f_train:
             corpus = gen_training_corpus(line)
             feat = feature(corpus.title, corpus.person1, corpus.person2)

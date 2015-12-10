@@ -108,6 +108,6 @@ def fetch_names():
 if __name__ == '__main__':
     # preproc_trainset()
     # proc_trainset()
-    # divide_trainset(0.5)
+    divide_trainset(0.6)
     # fetch_names()
     pass
